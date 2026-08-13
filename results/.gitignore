@@ -1,0 +1,3 @@
+# Append-only result tree; generated artifacts are not committed.
+*
+!.gitignore

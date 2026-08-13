@@ -1,0 +1,45 @@
+# Central version catalog for the Pi4J V4(FFM) vs V3 benchmark suite.
+# Referenced from build-logic convention plugins and every subproject.
+[versions]
+java            = "25"
+jmh             = "1.37"
+jmhGradle       = "0.7.3"
+jmhReport       = "0.9.6"
+foojay          = "1.0.0"
+hdrhistogram    = "2.2.2"
+oshi            = "6.6.5"
+jackson         = "2.18.2"
+junit           = "5.11.4"
+slf4j           = "2.0.17"
+# Pi4J lanes — V4 is the FFM plugin, built from the upstream `main` (5.0.0-SNAPSHOT)
+# into mavenLocal (see tools/build-pi4j-v4.sh); V3 is the released 3.x on Central.
+pi4jV4          = "5.0.0-SNAPSHOT"
+pi4jV3          = "3.0.2"
+
+[libraries]
+# --- benchmarking / data collection ---
+jmh-core            = { module = "org.openjdk.jmh:jmh-core", version.ref = "jmh" }
+jmh-annprocess      = { module = "org.openjdk.jmh:jmh-generator-annprocess", version.ref = "jmh" }
+hdrhistogram        = { module = "org.hdrhistogram:HdrHistogram", version.ref = "hdrhistogram" }
+oshi-core           = { module = "com.github.oshi:oshi-core", version.ref = "oshi" }
+jackson-databind    = { module = "com.fasterxml.jackson.core:jackson-databind", version.ref = "jackson" }
+junit-jupiter-api   = { module = "org.junit.jupiter:junit-jupiter-api", version.ref = "junit" }
+slf4j-simple        = { module = "org.slf4j:slf4j-simple", version.ref = "slf4j" }
+
+# --- Pi4J V4 (FFM) lane ---
+pi4j-v4-core        = { module = "com.pi4j:pi4j-core", version.ref = "pi4jV4" }
+pi4j-v4-ffm         = { module = "com.pi4j:pi4j-plugin-ffm", version.ref = "pi4jV4" }
+
+# --- Pi4J V3 lane ---
+pi4j-v3-core        = { module = "com.pi4j:pi4j-core", version.ref = "pi4jV3" }
+pi4j-v3-gpiod       = { module = "com.pi4j:pi4j-plugin-gpiod", version.ref = "pi4jV3" }
+pi4j-v3-linuxfs     = { module = "com.pi4j:pi4j-plugin-linuxfs", version.ref = "pi4jV3" }
+pi4j-v3-pigpio      = { module = "com.pi4j:pi4j-plugin-pigpio", version.ref = "pi4jV3" }
+
+# --- gradle plugins consumed by build-logic convention plugins ---
+plugin-jmh          = { module = "me.champeau.jmh:me.champeau.jmh.gradle.plugin", version.ref = "jmhGradle" }
+plugin-jmhreport    = { module = "io.morethan.jmhreport:io.morethan.jmhreport.gradle.plugin", version.ref = "jmhReport" }
+
+[plugins]
+jmh        = { id = "me.champeau.jmh", version.ref = "jmhGradle" }
+jmhreport  = { id = "io.morethan.jmhreport", version.ref = "jmhReport" }
