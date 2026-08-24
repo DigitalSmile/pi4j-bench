@@ -1,0 +1,10 @@
+{
+  "//": "Seed resources for the AOT latency image. The tracing agent (./gradlew :native-image:run -Pagent, gpio mock loaded) overwrites/extends this with the full reflect/resource/foreign metadata Pi4J needs; this covers the static baseline so a first nativeCompile has the logging + service files.",
+  "resources": {
+    "includes": [
+      { "pattern": "simplelogger\\.properties" },
+      { "pattern": "META-INF/services/.*" },
+      { "pattern": ".*\\.properties" }
+    ]
+  }
+}

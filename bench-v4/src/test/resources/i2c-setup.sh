@@ -10,3 +10,9 @@ insmod i2c-mock.ko debug="$DEBUG"
 
 # Sleep a second to let udev rules to be applied
 sleep 0.5
+
+# Grant the non-root benchmark JVM read/write on the mock I2C adapter (Block D memory
+# runner opens /dev/i2c-99). Root-created 0660 by default; removed with the module.
+if [ -e /dev/i2c-99 ]; then
+	chmod a+rw /dev/i2c-99 2>/dev/null || true
+fi

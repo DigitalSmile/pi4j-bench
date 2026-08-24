@@ -1,80 +1,51 @@
-// Root = aggregator. The whole matrix runs from a single `benchAll` entrypoint (§4.3).
-// Ordering: lifecycle (cold JVMs) → hot path → memory → latency (longest) → merge.
-plugins {
-    id("pi4j-bench.results")
-}
+// Root = a thin aggregator. Orchestration used to live here as a fragile task graph
+// (envCheck → loadMocks → measure → merge → unload, hand-sequenced with mustRunAfter /
+// finalizedBy and config-cache opt-outs). It now lives in the `bench-runner` module's
+// main() — Gradle's job shrank to resolving each lane's classpath and launching that one
+// JVM. See :bench-runner and plan.md §4.3.
 
-group = "io.github.digitalsmile"
+group = "io.github.digitalsmith"
 version = "1.0-SNAPSHOT"
 
-val lane = providers.gradleProperty("lane").getOrElse("mock") // mock | hw
-val arch: String = System.getProperty("os.arch")
+// Shared Java convention for every module — JDK 25 toolchain, UTF-8, FFM native access,
+// lint. This used to be a `pi4j-bench.java` precompiled-script-plugin in an included
+// `build-logic` build; for a single 30-line convention that whole extra build was overkill,
+// so it now lives here as one `subprojects {}` block (no included build, no plugin id to
+// apply in each module). `native-v3` is native-only (Exec tasks, its own `build` task, zero
+// Java sources), so it's excluded — applying the `java` plugin there would clash.
+subprojects {
+    if (name == "native-v3") return@subprojects
+    apply(plugin = "java")
 
-// --- environment gate --------------------------------------------------------
-tasks.register("envCheck") {
-    group = "pi4j-bench"
-    description = "Verifies governor/taskset/sudoers/libgpiod before any measurement (fails with hints)."
-    doLast {
-        logger.lifecycle("envCheck: arch=$arch lane=$lane — TODO: governor=performance, taskset, sudoers, libgpiod v1.x")
+    configure<JavaPluginExtension> {
+        // Any JDK 25 vendor; local installs discovered via
+        // org.gradle.java.installations.paths (gradle.properties).
+        toolchain { languageVersion.set(JavaLanguageVersion.of(25)) }
+    }
+
+    tasks.withType<JavaCompile>().configureEach {
+        options.encoding = "UTF-8"
+        options.release.set(25)
+        // JDK 25 finalized features (JEP 511/512/513/506) need no --enable-preview.
+        options.compilerArgs.addAll(listOf("-Xlint:all,-processing", "-parameters"))
+    }
+    tasks.withType<Test>().configureEach {
+        useJUnitPlatform()
+        // Pi4J V4 FFM downcalls require native access to be granted explicitly.
+        jvmArgs("--enable-native-access=ALL-UNNAMED")
+    }
+    tasks.withType<JavaExec>().configureEach {
+        jvmArgs("--enable-native-access=ALL-UNNAMED")
     }
 }
 
-// --- mock kernel drivers (skipped when lane=hw) ------------------------------
-tasks.register("buildMocks") {
-    group = "pi4j-bench"
-    description = "make in pi4j-plugin-ffm/src/test/native/* (incremental via inputs/outputs)."
-    doLast { logger.lifecycle("buildMocks: TODO wire pi4j FFM mock Makefiles") }
-}
-tasks.register("loadMocks") {
-    group = "pi4j-bench"
-    description = "sudo *-setup.sh (insmod). No-op when lane=hw."
-    dependsOn("buildMocks")
-    onlyIf { lane == "mock" }
-    doLast { logger.lifecycle("loadMocks: TODO insmod mock drivers") }
-}
-tasks.register("unloadMocks") {
-    group = "pi4j-bench"
-    description = "sudo *-clean.sh (rmmod)."
-    onlyIf { lane == "mock" }
-    doLast { logger.lifecycle("unloadMocks: TODO rmmod mock drivers") }
-}
-
-// --- benchmark blocks --------------------------------------------------------
-tasks.register("benchHotPath") {
-    group = "pi4j-bench"
-    description = "Block A — GPIO/I2C/SPI/PWM hot path across V3+V4."
-    dependsOn(":bench-v4:jmh", ":bench-v3:jmh")
-}
-tasks.register("benchLifecycle") {
-    group = "pi4j-bench"
-    description = "Block B — provider create/shutdown, autoContext vs explicit."
-    dependsOn(":bench-v4:jmh", ":bench-v3:jmh")
-}
-tasks.register("benchLatency") {
-    group = "pi4j-bench"
-    description = "Block C — edge event → listener latency/jitter (HdrHistogram, jHiccup, JFR)."
-    dependsOn(":bench-latency:run")
-}
-tasks.register("benchMemory") {
-    group = "pi4j-bench"
-    description = "Block D — RSS/NMT trajectory + B/op (#628 repro)."
-    dependsOn(":bench-memory:run")
-}
-
-tasks.register("mergeReports") {
-    group = "pi4j-bench"
-    description = "Merge V3/V4 JSON + HDR + CSV + fingerprint into results/<arch>/<lane>/<ts>/."
-    dependsOn("stampEnvManifest")
-    doLast { logger.lifecycle("mergeReports: TODO collate JMH JSON + HDR + fingerprint.json") }
-}
-
+// `./gradlew benchAll` runs the whole matrix with defaults (--lane mock). To pass options,
+// invoke the runner directly so Gradle forwards --args to its JavaExec:
+//   ./gradlew :bench-runner:run --args="--lane mock --quick"
+//   ./gradlew :bench-runner:run --args="--lane hw --gc zgc --jfr"
+//   ./gradlew :bench-runner:run --args="--lane mock --dry-run"
 tasks.register("benchAll") {
     group = "pi4j-bench"
-    description = "Single entrypoint: envCheck → mocks → lifecycle → hot path → memory → latency → merge."
-    dependsOn(
-        "envCheck", "loadMocks",
-        "benchLifecycle", "benchHotPath", "benchMemory", "benchLatency",
-        "mergeReports",
-    )
-    finalizedBy("unloadMocks")
+    description = "Run the whole benchmark matrix via the Java orchestrator (:bench-runner:run)."
+    dependsOn(":bench-runner:run")
 }

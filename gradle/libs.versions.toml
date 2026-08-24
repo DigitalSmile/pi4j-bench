@@ -3,11 +3,12 @@
 [versions]
 java            = "25"
 jmh             = "1.37"
-jmhGradle       = "0.7.3"
-jmhReport       = "0.9.6"
+picocli         = "4.7.6"
+graalvmNative   = "0.10.6"
 foojay          = "1.0.0"
 hdrhistogram    = "2.2.2"
 oshi            = "6.6.5"
+jna             = "5.17.0"
 jackson         = "2.18.2"
 junit           = "5.11.4"
 slf4j           = "2.0.17"
@@ -21,10 +22,16 @@ pi4jV3          = "3.0.2"
 jmh-core            = { module = "org.openjdk.jmh:jmh-core", version.ref = "jmh" }
 jmh-annprocess      = { module = "org.openjdk.jmh:jmh-generator-annprocess", version.ref = "jmh" }
 hdrhistogram        = { module = "org.hdrhistogram:HdrHistogram", version.ref = "hdrhistogram" }
+jna                 = { module = "net.java.dev.jna:jna", version.ref = "jna" }
+# --- orchestrator CLI (bench-runner) ---
+picocli             = { module = "info.picocli:picocli", version.ref = "picocli" }
+picocli-codegen     = { module = "info.picocli:picocli-codegen", version.ref = "picocli" }
 oshi-core           = { module = "com.github.oshi:oshi-core", version.ref = "oshi" }
 jackson-databind    = { module = "com.fasterxml.jackson.core:jackson-databind", version.ref = "jackson" }
 junit-jupiter-api   = { module = "org.junit.jupiter:junit-jupiter-api", version.ref = "junit" }
 slf4j-simple        = { module = "org.slf4j:slf4j-simple", version.ref = "slf4j" }
+# jmh-core / jmh-annprocess above are consumed directly by the bench-v3/v4 lanes (plain
+# annotation processing — no me.champeau.jmh plugin); the runner forks org.openjdk.jmh.Main.
 
 # --- Pi4J V4 (FFM) lane ---
 pi4j-v4-core        = { module = "com.pi4j:pi4j-core", version.ref = "pi4jV4" }
@@ -36,10 +43,5 @@ pi4j-v3-gpiod       = { module = "com.pi4j:pi4j-plugin-gpiod", version.ref = "pi
 pi4j-v3-linuxfs     = { module = "com.pi4j:pi4j-plugin-linuxfs", version.ref = "pi4jV3" }
 pi4j-v3-pigpio      = { module = "com.pi4j:pi4j-plugin-pigpio", version.ref = "pi4jV3" }
 
-# --- gradle plugins consumed by build-logic convention plugins ---
-plugin-jmh          = { module = "me.champeau.jmh:me.champeau.jmh.gradle.plugin", version.ref = "jmhGradle" }
-plugin-jmhreport    = { module = "io.morethan.jmhreport:io.morethan.jmhreport.gradle.plugin", version.ref = "jmhReport" }
-
 [plugins]
-jmh        = { id = "me.champeau.jmh", version.ref = "jmhGradle" }
-jmhreport  = { id = "io.morethan.jmhreport", version.ref = "jmhReport" }
+graalvm-native = { id = "org.graalvm.buildtools.native", version.ref = "graalvmNative" }

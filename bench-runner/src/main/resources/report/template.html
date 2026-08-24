@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>__TITLE__</title>
+<style>
+  :root {
+    /* dark surface + validated categorical palette (dataviz reference, dark steps) */
+    --surface-0: #111110;
+    --surface-1: #1a1a19;
+    --surface-2: #232322;
+    --border:    #33332f;
+    --text-1:    #ffffff;
+    --text-2:    #c3c2b7;
+    --text-3:    #8a897e;
+    --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500;
+    --s5:#d55181; --s6:#4fae4f; --s7:#9085e9; --s8:#e66767;
+    --good:#0ca30c; --warn:#fab219; --serious:#ec835a; --critical:#d03b3b;
+    --grid:#33332e; --grid2:#454540;
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--surface-0); color: var(--text-1); font-family: var(--sans); }
+  body { line-height: 1.5; -webkit-font-smoothing: antialiased; }
+  a { color: var(--s1); }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 32px 24px 96px; }
+  header.page { border-bottom: 1px solid var(--border); padding-bottom: 20px; margin-bottom: 8px; }
+  header.page h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: -.01em; }
+  header.page .sub { color: var(--text-3); font-size: 13px; font-family: var(--mono); }
+  .metagrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px 20px; margin-top: 16px; }
+  .metagrid .k { color: var(--text-3); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+  .metagrid .v { color: var(--text-2); font-size: 13px; font-family: var(--mono); word-break: break-word; }
+  section { margin-top: 40px; }
+  section > h2 { font-size: 16px; margin: 0 0 4px; display: flex; align-items: baseline; gap: 10px; }
+  section > h2 .tag { font-size: 11px; color: var(--text-3); font-weight: 400; font-family: var(--mono); }
+  section > .lede { color: var(--text-3); font-size: 13px; margin: 0 0 18px; max-width: 70ch; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px,1fr)); gap: 12px; margin: 16px 0; }
+  .tile { background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+  .tile .label { color: var(--text-3); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+  .tile .num { font-size: 24px; font-weight: 650; font-family: var(--mono); margin-top: 4px; letter-spacing: -.02em; }
+  .tile .unit { font-size: 13px; color: var(--text-3); font-weight: 400; }
+  .tile .foot { color: var(--text-3); font-size: 12px; margin-top: 2px; }
+  .card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 18px 18px 10px; margin: 16px 0; }
+  .card h3 { font-size: 13px; margin: 0 0 2px; color: var(--text-1); font-weight: 600; }
+  .card .csub { color: var(--text-3); font-size: 12px; margin: 0 0 10px; }
+  figure { margin: 0; }
+  svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .axis text { fill: var(--text-3); font-size: 10px; font-family: var(--mono); }
+  .axis line, .axis path { stroke: var(--grid); }
+  .gridline { stroke: var(--grid); stroke-width: 1; shape-rendering: crispEdges; }
+  .axis .barlabel { fill: var(--text-1); }   /* white axis labels on bar (non-line) charts */
+  .axis .barval { fill: var(--text-1); }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 8px 0 2px; font-size: 12px; color: var(--text-2); }
+  .legend .item { display: inline-flex; align-items: center; gap: 6px; }
+  .legend .swatch { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; margin: 6px 0 10px; }
+  th, td { text-align: right; padding: 7px 10px; border-bottom: 1px solid var(--border); font-family: var(--mono); white-space: nowrap; }
+  th:first-child, td:first-child { text-align: left; }
+  thead th { color: var(--text-3); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+  tbody tr:hover { background: var(--surface-2); }
+  td.pos { color: var(--good); } td.neg { color: var(--critical); } td.mut { color: var(--text-3); }
+  td.diffcell { color: var(--warn); background: rgba(250,178,25,.07); }
+  .facts { list-style: none; padding: 0; margin: 10px 0; }
+  .facts li { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; color: var(--text-2); }
+  .facts li:last-child { border-bottom: none; }
+  .facts .dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 6px; flex: none; }
+  .facts b { color: var(--text-1); font-weight: 600; }
+  .facts code { font-family: var(--mono); color: var(--text-1); background: var(--surface-2); padding: 1px 5px; border-radius: 4px; }
+  .tip { position: fixed; pointer-events: none; z-index: 30; background: var(--surface-2); border: 1px solid var(--border);
+         border-radius: 8px; padding: 8px 10px; font-size: 12px; font-family: var(--mono); color: var(--text-1);
+         box-shadow: 0 6px 24px rgba(0,0,0,.5); opacity: 0; transition: opacity .08s; max-width: 320px; }
+  .tip .tk { color: var(--text-3); }
+  .empty { color: var(--text-3); font-size: 13px; font-style: italic; padding: 8px 0; }
+  footer.page { margin-top: 56px; border-top: 1px solid var(--border); padding-top: 16px; color: var(--text-3); font-size: 12px; font-family: var(--mono); }
+  .pill { display:inline-block; font-family: var(--mono); font-size: 11px; padding: 1px 7px; border-radius: 999px; border:1px solid var(--border); color: var(--text-2); }
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<div class="tip" id="tip"></div>
+<script>
+"use strict";
+const DATA = /*__DATA__*/ null;
+const MODE = "__MODE__"; // 'single' | 'compare'
+
+/* ---------- palette ---------- */
+const SERIES = ['--s1','--s2','--s3','--s4','--s5','--s6','--s7','--s8'].map(v =>
+  getComputedStyle(document.documentElement).getPropertyValue(v).trim());
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const STATUS = { good: cssv('--good'), warn: cssv('--warn'), serious: cssv('--serious'), critical: cssv('--critical'), info: cssv('--s1') };
+
+/* ---------- tiny dom + format helpers ---------- */
+const el = (t, a = {}, kids = []) => {
+  const n = document.createElementNS(t === 'svg' || SVG.has(t) ? NS : XH, t);
+  for (const k in a) {
+    if (k === 'class') n.setAttribute('class', a[k]);
+    else if (k === 'html') n.innerHTML = a[k];
+    else if (k === 'text') n.textContent = a[k];
+    else if (a[k] != null) n.setAttribute(k, a[k]);
+  }
+  (Array.isArray(kids) ? kids : [kids]).forEach(c => c != null && n.appendChild(typeof c === 'string' ? document.createTextNode(c) : c));
+  return n;
+};
+const NS = 'http://www.w3.org/2000/svg', XH = 'http://www.w3.org/1999/xhtml';
+const SVG = new Set(['g','rect','line','path','text','circle','polyline','svg','clipPath','tspan','defs','linearGradient','stop']);
+let __uid = 0; const uid = () => 'g' + (++__uid); // unique gradient ids across all charts
+const fmt = (x, d = 2) => x == null || !isFinite(x) ? '—' : (Math.abs(x) >= 1000 ? x.toLocaleString('en-US', { maximumFractionDigits: 0 })
+                        : x.toLocaleString('en-US', { maximumFractionDigits: d, minimumFractionDigits: 0 }));
+const pct = x => (x > 0 ? '+' : '') + fmt(x, 1) + '%';
+const kib = k => k >= 1048576 ? fmt(k / 1048576, 2) + ' GiB' : k >= 1024 ? fmt(k / 1024, 1) + ' MiB' : fmt(k, 0) + ' KiB';
+const us = x => fmt(x, x < 10 ? 3 : x < 100 ? 2 : 1);
+const speed = (slow, fast) => slow / fast;
+
+/* ---------- tooltip ---------- */
+const tip = document.getElementById('tip');
+function showTip(html, ev) { tip.innerHTML = html; tip.style.opacity = 1;
+  const pad = 14, w = tip.offsetWidth, h = tip.offsetHeight;
+  let x = ev.clientX + pad, y = ev.clientY + pad;
+  if (x + w > innerWidth) x = ev.clientX - w - pad;
+  if (y + h > innerHeight) y = ev.clientY - h - pad;
+  tip.style.left = x + 'px'; tip.style.top = y + 'px'; }
+const hideTip = () => tip.style.opacity = 0;
+
+/* ---------- scales ---------- */
+const linear = (d0, d1, r0, r1) => { const m = (r1 - r0) / ((d1 - d0) || 1); return v => r0 + (v - d0) * m; };
+const log10 = v => Math.log(Math.max(v, 1e-9)) / Math.LN10;
+const logScale = (d0, d1, r0, r1) => { const a = log10(d0), b = log10(d1); const m = (r1 - r0) / ((b - a) || 1);
+  return v => r0 + (log10(v) - a) * m; };
+function niceTicks(min, max, n = 5) { const span = (max - min) || 1, step0 = span / n, mag = Math.pow(10, Math.floor(log10(step0)));
+  const norm = step0 / mag, step = (norm >= 5 ? 5 : norm >= 2 ? 2 : 1) * mag;
+  const out = []; for (let t = Math.ceil(min / step) * step; t <= max + 1e-9; t += step) out.push(+t.toFixed(10)); return out; }
+function logTicks(min, max) { const out = []; for (let e = Math.floor(log10(min)); e <= Math.ceil(log10(max)); e++) { const b = Math.pow(10, e);
+  [1, 2, 5].forEach(m => { const v = b * m; if (v >= min * 0.999 && v <= max * 1.001) out.push(v); }); } return out; }
+
+/* ---------- line / area chart ---------- */
+/* series: [{name,color,pts:[[x,y]...]}]  opts: {w,h,xlab,ylab,logY,logX,xfmt,yfmt,unit,area} */
+function lineChart(series, opts = {}) {
+  const w = opts.w || 1080, h = opts.h || 300, m = { t: 14, r: 18, b: 36, l: 58 };
+  const iw = w - m.l - m.r, ih = h - m.t - m.b;
+  const xs = series.flatMap(s => s.pts.map(p => p[0])), ys = series.flatMap(s => s.pts.map(p => p[1]));
+  let xmin = Math.min(...xs), xmax = Math.max(...xs), ymin = Math.min(...ys), ymax = Math.max(...ys);
+  if (opts.logX) { xmin = Math.max(1, Math.min(...xs.filter(v => v > 0))); }  // log x: 0 → axis floor
+  if (opts.logY) { ymin = Math.max(ymin, opts.yFloor || Math.min(...ys.filter(v => v > 0)) || 1); }
+  else { ymin = Math.min(0, ymin); ymax = ymax + (ymax - ymin) * 0.08; }
+  const X = v => opts.logX ? Math.max(v, xmin) : v;   // clamp non-positive x onto the log floor
+  const sx = opts.logX ? logScale(xmin, xmax, m.l, m.l + iw) : linear(xmin, xmax, m.l, m.l + iw);
+  const sy = opts.logY ? logScale(ymin, ymax, m.t + ih, m.t) : linear(ymin, ymax, m.t + ih, m.t);
+  const invX = opts.logX ? px => Math.pow(10, log10(xmin) + (px - m.l) / iw * (log10(xmax) - log10(xmin)))
+                         : px => xmin + (px - m.l) / iw * (xmax - xmin);
+  const svg = el('svg', { viewBox: `0 0 ${w} ${h}`, class: 'axis' });
+  const defs = el('defs', {}); svg.appendChild(defs);
+  const g = el('g', {});
+  // horizontal gridlines + y labels
+  const yticks = opts.logY ? logTicks(ymin, ymax) : niceTicks(ymin, ymax, 5);
+  yticks.forEach(t => { const y = sy(t);
+    g.appendChild(el('line', { class: 'gridline', x1: m.l, x2: m.l + iw, y1: y, y2: y }));
+    g.appendChild(el('text', { x: m.l - 8, y: y + 3, 'text-anchor': 'end', class: 'axis', text: (opts.yfmt || fmt)(t) })); });
+  // vertical gridlines + x labels (both axes gridded so the scale is legible)
+  const xticks = opts.logX ? logTicks(xmin, xmax) : niceTicks(xmin, xmax, Math.min(7, Math.max(2, Math.round(iw / 120))));
+  xticks.forEach(t => { const x = sx(t);
+    g.appendChild(el('line', { class: 'gridline', x1: x, x2: x, y1: m.t, y2: m.t + ih }));
+    g.appendChild(el('text', { x, y: m.t + ih + 16, 'text-anchor': 'middle', class: 'axis', text: (opts.xfmt || fmt)(t) })); });
+  // frame the plot so the axes read as a scale box
+  g.appendChild(el('line', { x1: m.l, x2: m.l, y1: m.t, y2: m.t + ih, stroke: 'var(--grid2)' }));
+  g.appendChild(el('line', { x1: m.l, x2: m.l + iw, y1: m.t + ih, y2: m.t + ih, stroke: 'var(--grid2)' }));
+  if (opts.ylab) g.appendChild(el('text', { x: 4, y: m.t + ih / 2, class: 'axis', transform: `rotate(-90 12,${m.t + ih / 2})`, 'text-anchor': 'middle', text: opts.ylab }));
+  if (opts.xlab) g.appendChild(el('text', { x: m.l + iw / 2, y: h - 2, 'text-anchor': 'middle', class: 'axis', text: opts.xlab }));
+  const area = opts.area !== false && series.length <= 2;   // subtle colour fill when it won't clutter
+  series.forEach(s => {
+    const d = s.pts.map((p, i) => (i ? 'L' : 'M') + sx(X(p[0])).toFixed(1) + ' ' + sy(p[1]).toFixed(1)).join(' ');
+    if (area) {
+      const id = uid(), grad = el('linearGradient', { id, x1: 0, y1: 0, x2: 0, y2: 1 });
+      grad.appendChild(el('stop', { offset: '0%', 'stop-color': s.color, 'stop-opacity': 0.32 }));
+      grad.appendChild(el('stop', { offset: '100%', 'stop-color': s.color, 'stop-opacity': 0.02 }));
+      defs.appendChild(grad);
+      const base = m.t + ih, x0 = sx(X(s.pts[0][0])).toFixed(1), xN = sx(X(s.pts[s.pts.length - 1][0])).toFixed(1);
+      g.appendChild(el('path', { d: `M ${x0} ${base} ${d.replace(/^M/, 'L')} L ${xN} ${base} Z`, fill: `url(#${id})`, stroke: 'none' }));
+    }
+    g.appendChild(el('path', { d, fill: 'none', stroke: s.color, 'stroke-width': 2.5, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }));
+    if (s.pts.length <= 12) s.pts.forEach(p => g.appendChild(el('circle', { cx: sx(X(p[0])), cy: sy(p[1]), r: 3.5, fill: s.color, stroke: 'var(--surface-1)', 'stroke-width': 1.5 })));
+  });
+  // hover crosshair
+  const cross = el('line', { class: 'gridline', y1: m.t, y2: m.t + ih, stroke: 'var(--text-3)', 'stroke-dasharray': '3 3', opacity: 0 });
+  const dots = series.map(s => el('circle', { r: 4, fill: s.color, stroke: 'var(--surface-1)', 'stroke-width': 2, opacity: 0 }));
+  g.appendChild(cross); dots.forEach(d => g.appendChild(d));
+  const rect = el('rect', { x: m.l, y: m.t, width: iw, height: ih, fill: 'transparent' });
+  rect.addEventListener('mousemove', ev => {
+    const svg = rect.ownerSVGElement, pt = svg.createSVGPoint(); pt.x = ev.clientX; pt.y = ev.clientY;
+    const loc = pt.matrixTransform(svg.getScreenCTM().inverse());
+    const xv = invX(loc.x);
+    cross.setAttribute('x1', loc.x); cross.setAttribute('x2', loc.x); cross.setAttribute('opacity', 1);
+    let rows = '';
+    series.forEach((s, i) => { let best = s.pts[0]; for (const p of s.pts) if (Math.abs(p[0] - xv) < Math.abs(best[0] - xv)) best = p;
+      dots[i].setAttribute('cx', sx(X(best[0]))); dots[i].setAttribute('cy', sy(best[1])); dots[i].setAttribute('opacity', 1);
+      rows += `<div><span class="swatch" style="background:${s.color};width:9px;height:9px;display:inline-block;border-radius:2px"></span> ${s.name}: <b>${(opts.yfmt || fmt)(best[1])}</b>${opts.unit ? ' ' + opts.unit : ''}</div>`; });
+    showTip(`<div class="tk">${opts.xlab || 'x'} ≈ ${(opts.xfmt || fmt)(xv)}</div>${rows}`, ev);
+  });
+  rect.addEventListener('mouseleave', () => { hideTip(); cross.setAttribute('opacity', 0); dots.forEach(d => d.setAttribute('opacity', 0)); });
+  g.appendChild(rect);
+  svg.appendChild(g);
+  return svg;
+}
+
+/* ---------- grouped bar chart (horizontal) ---------- */
+/* groups: [{label, bars:[{name,color,value,note}]}]  opts:{unit,vfmt,w}
+   Non-line chart: axis labels are WHITE, gradient-filled bars, zebra bands + vertical grid. */
+function barChart(groups, opts = {}) {
+  const w = opts.w || 1080, rowH = 36, m = { t: 10, r: 96, b: 28, l: 190 };
+  const nb = Math.max(1, groups[0]?.bars.length || 1);
+  const bh = (rowH - 10) / nb;
+  const h = m.t + m.b + groups.length * rowH;
+  const iw = w - m.l - m.r;
+  const vmax = Math.max(...groups.flatMap(gr => gr.bars.map(b => b.value)), 1e-9) * 1.04;
+  const sx = linear(0, vmax, m.l, m.l + iw);
+  const svg = el('svg', { viewBox: `0 0 ${w} ${h}`, class: 'axis' });
+  const defs = el('defs', {}); svg.appendChild(defs);
+  const g = el('g', {});
+  // zebra row bands make it easy to track a bar back to its scale
+  groups.forEach((gr, gi) => { if (gi % 2 === 0) g.appendChild(el('rect', { x: m.l, y: m.t + gi * rowH, width: iw, height: rowH, fill: 'var(--surface-2)', opacity: 0.55 })); });
+  // vertical gridlines + WHITE value-axis labels (req: y-axis legend white on non-line charts)
+  niceTicks(0, vmax, 6).forEach(t => { const x = sx(t);
+    g.appendChild(el('line', { class: 'gridline', x1: x, x2: x, y1: m.t, y2: h - m.b }));
+    g.appendChild(el('text', { x, y: h - m.b + 16, 'text-anchor': 'middle', class: 'barval', text: (opts.vfmt || fmt)(t) })); });
+  g.appendChild(el('line', { x1: m.l, x2: m.l, y1: m.t, y2: h - m.b, stroke: 'var(--grid2)' }));
+  groups.forEach((gr, gi) => {
+    const y0 = m.t + gi * rowH;
+    g.appendChild(el('text', { x: m.l - 12, y: y0 + rowH / 2 + 3, 'text-anchor': 'end', class: 'barlabel', text: gr.label }));
+    gr.bars.forEach((b, bi) => {
+      const y = y0 + 5 + bi * bh, x = sx(b.value);
+      const id = uid(), grad = el('linearGradient', { id, x1: 0, y1: 0, x2: 1, y2: 0 });
+      grad.appendChild(el('stop', { offset: '0%', 'stop-color': b.color, 'stop-opacity': 0.82 }));
+      grad.appendChild(el('stop', { offset: '100%', 'stop-color': b.color, 'stop-opacity': 1 }));
+      defs.appendChild(grad);
+      const bar = el('rect', { x: m.l, y: y + 1, width: Math.max(1, x - m.l), height: bh - 2, rx: 3, fill: `url(#${id})` });
+      bar.addEventListener('mousemove', ev => showTip(`<b>${gr.label}</b><br><span class="swatch" style="background:${b.color};width:9px;height:9px;display:inline-block;border-radius:2px"></span> ${b.name}: <b>${(opts.vfmt || fmt)(b.value)}</b> ${opts.unit || ''}${b.note ? '<br><span class=tk>' + b.note + '</span>' : ''}`, ev));
+      bar.addEventListener('mouseleave', hideTip);
+      g.appendChild(bar);
+      g.appendChild(el('text', { x: x + 6, y: y + bh / 2 + 3.5, class: 'barval', text: (opts.vfmt || fmt)(b.value) }));
+    });
+  });
+  svg.appendChild(g);
+  return svg;
+}
+
+function legend(items) { return el('div', { class: 'legend' }, items.map(it =>
+  el('span', { class: 'item' }, [el('span', { class: 'swatch', style: `background:${it.color}` }), it.name]))); }
+
+/* ---------- facts list ---------- */
+function factList(facts) {
+  if (!facts.length) return el('div', { class: 'empty' }, 'No notable facts.');
+  return el('ul', { class: 'facts' }, facts.map(f =>
+    el('li', {}, [el('span', { class: 'dot', style: `background:${STATUS[f.level] || STATUS.info}` }), el('span', { html: f.text })])));
+}
+
+function card(title, sub, ...body) { const c = el('div', { class: 'card' });
+  if (title) c.appendChild(el('h3', { text: title })); if (sub) c.appendChild(el('div', { class: 'csub', text: sub }));
+  body.forEach(b => b && c.appendChild(b)); return c; }
+function section(title, tag, lede) { const s = el('section', {});
+  s.appendChild(el('h2', {}, [title, tag ? el('span', { class: 'tag', text: tag }) : null].filter(Boolean)));
+  if (lede) s.appendChild(el('p', { class: 'lede', text: lede })); return s; }
+function tile(label, num, unit, foot, color) { return el('div', { class: 'tile' }, [
+  el('div', { class: 'label', text: label }),
+  el('div', { class: 'num', style: color ? `color:${color}` : '' }, [String(num), unit ? el('span', { class: 'unit', text: ' ' + unit }) : null].filter(Boolean)),
+  foot ? el('div', { class: 'foot', html: foot }) : null].filter(Boolean)); }
+
+/* ================= domain: JMH pairing ================= */
+// Map a JMH benchmark method name to a semantic operation + which comparable lane it is.
+function jmhOp(name) {
+  const n = name.toLowerCase();
+  if (n.includes('inputwithlistener')) return { op: 'GPIO input + listener', unit: 'µs/op' };
+  if (n.includes('input')) return { op: 'GPIO input round-trip', unit: 'µs/op' };
+  if (n.includes('output')) return { op: 'GPIO output round-trip', unit: 'µs/op' };
+  if (n.includes('writeread')) return { op: 'I2C write→read', unit: 'µs/op' };
+  if (n.includes('smbus')) return { op: 'I2C SMBus', unit: 'µs/op' };
+  if (n.includes('i2cdirect')) return { op: 'I2C direct', unit: 'µs/op' };
+  if (n.includes('i2cfile') || n.includes('linuxfsi2c')) return { op: 'I2C file', unit: 'µs/op' };
+  if (n.includes('spi')) return { op: 'SPI transfer', unit: 'µs/op' };
+  if (n.includes('pwm')) return { op: 'PWM', unit: 'µs/op' };
+  if (n.includes('explicitcontext')) return { op: 'Context (explicit)', unit: 'ms/op' };
+  if (n.includes('autocontext')) return { op: 'Context (auto)', unit: 'ms/op' };
+  if (n.includes('createshutdown')) return { op: 'Create + shutdown', unit: 'ms/op' };
+  return { op: name.replace(/^.*\./, ''), unit: '' };
+}
+const short = n => n.replace(/^.*\./, '');
+
+/* ================= app ================= */
+const app = document.getElementById('app');
+// Dispatch runs at the very end of the script (see bottom) so every const/helper — notably
+// META_DIMS — is initialised before the first render touches it.
+
+/* Shared, detailed run dimensions — used by BOTH the single-run header (as a key/value grid)
+   and the compare Configuration matrix (as columns), so they carry identical detail. */
+const jdkStr = m => [m.jdkVersion || m.jdk || '?', m.vmName, m.vmVersion].filter(Boolean).join(' · ');
+const pi4jStr = m => {
+  const v4 = (m.pi4jV4 && m.pi4jV4 !== 'unknown') ? m.pi4jV4 : '?';
+  const v3 = (m.pi4jV3 && m.pi4jV3 !== 'unknown') ? m.pi4jV3 : '?';
+  let s = 'V4 ' + v4 + ' / V3 ' + v3;
+  if (m.memPi4j && m.memPi4j.length) s += ' · memory lanes ' + m.memPi4j.join(', ');
+  return s;
+};
+const META_DIMS = [
+  ['run', m => m.timestamp || '?'],
+  ['architecture', m => m.arch || '?'],
+  ['peripheral lane', m => m.lane || '?'],
+  ['collectors (gc)', m => (m.gcs || []).join(', ') || '—'],
+  ['gc-pressure', m => m.gcPressure ? ((m.gcPressureMbps || '?') + ' MB/s') : 'off'],
+  ['jdk', m => jdkStr(m)],
+  ['jvm path', m => m.jvmPath || '—'],
+  ['kernel', m => m.kernel || '?'],
+  ['host cpu', m => m.host ? m.host.cpuModel : '?'],
+  ['cpus / mem', m => m.host ? (m.host.cpus + ' · ' + kib(m.host.totalMemBytes / 1024)) : '?'],
+  ['git sha', m => m.gitSha || '?'],
+  ['pi4j', m => pi4jStr(m)],
+];
+
+function header(meta, title, subExtra) {
+  const h = el('header', { class: 'page' });
+  h.appendChild(el('h1', { text: title }));
+  h.appendChild(el('div', { class: 'sub', text: subExtra || '' }));
+  const g = el('div', { class: 'metagrid' });
+  META_DIMS.forEach(([k, fn]) => { const v = fn(meta); if (v == null) return;
+    g.appendChild(el('div', {}, [el('div', { class: 'k', text: k }), el('div', { class: 'v', text: String(v) })])); });
+  h.appendChild(g); return h;
+}
+
+/* ---- gather a flat list of {gc, lane object} ---- */
+function eachGc(run) { return Object.entries(run.lanes || {}).map(([gc, d]) => ({ gc, ...d })); }
+
+function renderSingle(run) {
+  app.appendChild(header(run.meta, 'pi4j-bench report', 'V4(FFM) vs V3 · hot-path · lifecycle · latency · memory · warmup'));
+  const gcs = eachGc(run);
+  const primary = gcs[0] || {};
+  hotPathSection(app, gcs);
+  lifecycleSection(app, gcs);
+  latencySection(app, run, gcs);
+  memorySection(app, gcs);
+  warmupSection(app, gcs);
+  ffmSection(app, gcs);
+  app.appendChild(footer(run.meta));
+}
+
+/* ---------- HOT PATH (throughput) ---------- */
+function hotPathSection(root, gcs) {
+  const s = section('Hot-path throughput', 'JMH · avg time/op · lower is better',
+    'Round-trip cost of a single peripheral operation on the V4 FFM provider vs the V3 provider, per collector.');
+  const primary = gcs[0];
+  if (!primary || !(primary.jmh || []).length) { s.appendChild(el('div', { class: 'empty', text: 'No JMH results.' })); root.appendChild(s); return; }
+  // pair v4 vs v3 by op, µs/op only (lifecycle handled separately)
+  gcs.forEach(g => {
+    const rows = pairJmh(g.jmh).filter(r => r.unit === 'µs/op');
+    if (!rows.length) return;
+    const groups = rows.map(r => ({ label: r.op, bars: [
+      r.v4 != null ? { name: 'V4 (FFM)', color: SERIES[0], value: r.v4, note: '±' + us(r.v4e) } : null,
+      r.v3 != null ? { name: 'V3', color: SERIES[1], value: r.v3, note: '±' + us(r.v3e) } : null].filter(Boolean) }));
+    const facts = [];
+    rows.forEach(r => { if (r.v4 != null && r.v3 != null) { const sp = speed(r.v3, r.v4);
+      facts.push({ level: sp >= 1 ? 'good' : 'critical', text: `<b>${r.op}</b>: V4 <code>${us(r.v4)} µs</code> vs V3 <code>${us(r.v3)} µs</code> — V4 is <b>${fmt(sp, sp >= 10 ? 0 : 1)}×</b> ${sp >= 1 ? 'faster' : 'slower'}.` }); } });
+    const c = card('Collector ' + g.gc.toUpperCase(), rows.length + ' comparable operations',
+      barChart(groups, { unit: 'µs/op', vfmt: x => us(x) }), legend([{ name: 'V4 (FFM)', color: SERIES[0] }, { name: 'V3', color: SERIES[1] }]),
+      jmhTable(rows), factList(facts));
+    s.appendChild(c);
+  });
+  root.appendChild(s);
+}
+function pairJmh(jmh) {
+  const map = new Map();
+  (jmh || []).forEach(b => { const info = jmhOp(b.name); const key = info.op;
+    if (!map.has(key)) map.set(key, { op: info.op, unit: info.unit });
+    const r = map.get(key); if (b.group === 'v3') { r.v3 = b.score; r.v3e = b.error; } else { r.v4 = b.score; r.v4e = b.error; } });
+  return [...map.values()];
+}
+function jmhTable(rows) {
+  const head = el('tr', {}, ['operation', 'V4', 'V3', 'speedup', 'unit'].map(t => el('th', { text: t })));
+  const body = rows.map(r => { const sp = (r.v4 != null && r.v3 != null) ? speed(r.v3, r.v4) : null;
+    return el('tr', {}, [
+      el('td', { text: r.op }),
+      el('td', { text: r.v4 != null ? us(r.v4) + ' ±' + us(r.v4e) : '—' }),
+      el('td', { text: r.v3 != null ? us(r.v3) + ' ±' + us(r.v3e) : '—' }),
+      el('td', { class: sp == null ? 'mut' : sp >= 1 ? 'pos' : 'neg', text: sp == null ? '—' : fmt(sp, sp >= 10 ? 0 : 1) + '×' }),
+      el('td', { class: 'mut', text: r.unit })]); });
+  return el('table', {}, [el('thead', {}, head), el('tbody', {}, body)]);
+}
+
+/* ---------- LIFECYCLE ---------- */
+function lifecycleSection(root, gcs) {
+  const primary = gcs[0]; if (!primary) return;
+  const anyLife = gcs.some(g => pairJmh(g.jmh).some(r => r.unit === 'ms/op'));
+  if (!anyLife) return;
+  const s = section('Context lifecycle', 'JMH · ms/op · lower is better', 'Cost of creating / tearing down a Pi4J context — a one-time startup tax, not a hot path.');
+  gcs.forEach(g => { const rows = pairJmh(g.jmh).filter(r => r.unit === 'ms/op'); if (!rows.length) return;
+    const groups = rows.map(r => ({ label: r.op, bars: [
+      r.v4 != null ? { name: 'V4', color: SERIES[0], value: r.v4 } : null,
+      r.v3 != null ? { name: 'V3', color: SERIES[1], value: r.v3 } : null].filter(Boolean) }));
+    s.appendChild(card('Collector ' + g.gc.toUpperCase(), null,
+      barChart(groups, { unit: 'ms/op', vfmt: x => fmt(x, 4) }), legend([{ name: 'V4', color: SERIES[0] }, { name: 'V3', color: SERIES[1] }]), jmhTable(rows)));
+  });
+  root.appendChild(s);
+}
+
+/* ---------- LATENCY ---------- */
+function latencySection(root, run, gcs) {
+  const lanes = gcs.flatMap(g => (g.latency || []).map(L => ({ ...L, gcKey: g.gc })));
+  if (!lanes.length) return;
+  const s = section('Edge → listener latency', 'HDR percentiles · µs · lower is better',
+    'Full kernel-edge→poll→dispatch→listener round-trip, sampled at a fixed rate. The tail (p99.9+) is the story for jitter.');
+  const LP = ['p50', 'p90', 'p99', 'p999', 'p9999', 'max'];
+  const LPlab = { p50: 'p50', p90: 'p90', p99: 'p99', p999: 'p99.9', p9999: 'p99.99', max: 'max' };
+  // percentile ladder: x = percentile index, y = µs (log), one line per lane
+  const series = lanes.map((L, i) => ({ name: laneLabel(L), color: SERIES[i % SERIES.length],
+    pts: LP.map((k, xi) => [xi, L.p[k]]) }));
+  const ladder = lineChart(series, { logY: true, ylab: 'µs (log)', xlab: 'percentile',
+    xfmt: i => LPlab[LP[Math.round(i)]] || '', yfmt: x => us(x), unit: 'µs', h: 320 });
+  // tiles: best/worst tail
+  const tiles = el('div', { class: 'tiles' });
+  lanes.forEach(L => tiles.appendChild(tile(laneLabel(L), us(L.p.p50), 'µs p50',
+    `p99 <b>${us(L.p.p99)}</b> · p99.9 <b>${us(L.p.p999)}</b> · max <b>${us(L.p.max)}</b>`)));
+  const facts = latencyFacts(lanes);
+  s.appendChild(card('Percentile ladder', lanes.length + ' lane(s) · ' + (lanes[0].count || 0).toLocaleString() + ' samples each',
+    ladder, legend(series)));
+  s.appendChild(tiles);
+  s.appendChild(card('Latency table', 'includes the stimulus-write offset baked into every sample', latencyTable(lanes, LP, LPlab)));
+  s.appendChild(card('What the tail says', null, factList(facts)));
+  root.appendChild(s);
+}
+function laneLabel(L) { return (L.gc || L.gcKey || '?').toUpperCase() + (L.gcPressure ? ' +load' : ''); }
+function latencyTable(lanes, LP, LPlab) {
+  const head = el('tr', {}, ['lane', 'mean', ...LP.map(k => LPlab[k]), 'missed', 'write p50'].map(t => el('th', { text: t })));
+  const body = lanes.map(L => el('tr', {}, [
+    el('td', { text: laneLabel(L) }), el('td', { text: us(L.p.mean) }),
+    ...LP.map(k => el('td', { text: us(L.p[k]) })),
+    el('td', { class: L.missed ? 'neg' : 'mut', text: L.missed || 0 }),
+    el('td', { class: 'mut', text: L.write ? us(L.write.p50) : '—' })]));
+  return el('table', {}, [el('thead', {}, head), el('tbody', {}, body)]);
+}
+function latencyFacts(lanes) {
+  const f = [];
+  lanes.forEach(L => { const m = L.missed || 0;
+    if (m > 0) f.push({ level: m > L.count * 0.001 ? 'warn' : 'info', text: `<b>${laneLabel(L)}</b>: ${m} missed sample(s) (timeout overrun) out of ${(L.count + m).toLocaleString()}.` }); });
+  // compare collectors on p99.9 and max if >1
+  const byTail = [...lanes].sort((a, b) => a.p.p999 - b.p.p999);
+  if (lanes.length > 1) { const best = byTail[0], worst = byTail[byTail.length - 1];
+    const dTail = (1 - best.p.p999 / worst.p.p999) * 100, dMax = (1 - best.p.max / worst.p.max) * 100;
+    f.push({ level: 'good', text: `<b>${laneLabel(best)}</b> owns the tail: p99.9 <code>${us(best.p.p999)} µs</code> vs <b>${laneLabel(worst)}</b> <code>${us(worst.p.p999)} µs</code> (${fmt(dTail, 0)}% lower); max ${fmt(dMax, 0)}% lower.` }); }
+  lanes.forEach(L => { if (L.write) f.push({ level: 'info', text: `<b>${laneLabel(L)}</b>: stimulus-write offset p50 <code>${us(L.write.p50)} µs</code> / p99 <code>${us(L.write.p99)} µs</code> is baked into every latency sample (common to both providers).` }); });
+  return f;
+}
+
+/* ---------- MEMORY ---------- */
+function memorySection(root, gcs) {
+  const mems = gcs.flatMap(g => (g.memory || []).map(M => ({ ...M, gcKey: g.gc })));
+  if (!mems.length) return;
+  const s = section('Native memory under sustained load', 'RSS / NMT · lower & flatter is better',
+    'Resident set and NMT-committed native memory over a fixed op count. A leak shows as monotonic growth; a healthy path plateaus.');
+  gcs.forEach(g => { const ms = (g.memory || []); if (!ms.length) return;
+    // one chart: RSS trajectory of each mode
+    const series = ms.map((M, i) => ({ name: (M.mode || 'mode') + ' (' + (M.pi4jVersion || '?') + ')', color: SERIES[i % SERIES.length],
+      pts: (M.traj || []).map(t => [t[0], t[1] / 1024]) }));
+    const chart = lineChart(series, { ylab: 'RSS (MiB)', xlab: 'operations', xfmt: x => x >= 1e6 ? fmt(x / 1e6, 1) + 'M' : fmt(x / 1e3, 0) + 'k', yfmt: x => fmt(x, 0), unit: 'MiB', h: 300 });
+    const tiles = el('div', { class: 'tiles' });
+    ms.forEach(M => { const leak = leakVerdict(M);
+      tiles.appendChild(tile(M.mode + ' · RSS Δ', kib(M.rssDeltaKib), '', `NMT Δ ${kib(M.nmtDeltaKib)} · <span style="color:${leak.color}">${leak.label}</span>`, leak.color)); });
+    s.appendChild(card('Collector ' + g.gc.toUpperCase() + ' · RSS trajectory', ms.map(M => M.mode).join(' vs '), chart, legend(series)));
+    s.appendChild(tiles);
+    s.appendChild(card('Verdict', null, factList(memFacts(ms))));
+  });
+  root.appendChild(s);
+}
+function leakVerdict(M) {
+  const t = M.traj || []; if (t.length < 4) return { label: 'n/a', color: cssv('--text-3'), slope: 0 };
+  // slope over the second half (KiB per op): a plateau ⇒ ~0
+  const half = t.slice(Math.floor(t.length / 2));
+  const slope = (half[half.length - 1][1] - half[0][1]) / ((half[half.length - 1][0] - half[0][0]) || 1);
+  const growthFrac = (t[t.length - 1][1] - t[0][1]) / (t[0][1] || 1);
+  if (slope > 0.05 && growthFrac > 0.3) return { label: 'leaking', color: STATUS.critical, slope };
+  if (slope > 0.01) return { label: 'slow growth', color: STATUS.warn, slope };
+  return { label: 'plateau (healthy)', color: STATUS.good, slope };
+}
+function memFacts(ms) {
+  const f = [];
+  ms.forEach(M => { const v = leakVerdict(M); const ops = M.totalOps || (M.traj ? M.traj[M.traj.length - 1][0] : 0);
+    const perOp = ops ? (M.rssDeltaKib * 1024 / ops) : 0;
+    f.push({ level: v.label.startsWith('plateau') ? 'good' : v.label === 'leaking' ? 'critical' : 'warn',
+      text: `<b>${M.mode}</b> (pi4j ${M.pi4jVersion}): RSS grew <code>${kib(M.rssDeltaKib)}</code> over ${ops.toLocaleString()} ops (≈${fmt(perOp, 1)} B/op), NMT <code>${kib(M.nmtDeltaKib)}</code> — <b>${v.label}</b>.` }); });
+  const fixed = ms.find(M => /fix/i.test(M.mode)), bug = ms.find(M => /628|issue|leak/i.test(M.mode));
+  if (fixed && bug) { const ratio = bug.rssDeltaKib / (fixed.rssDeltaKib || 1);
+    f.push({ level: 'info', text: `The leaking path retains <b>${fmt(ratio, 1)}×</b> the RSS of the fixed path over the same workload — a clean before/after for issue&nbsp;#628.` }); }
+  return f;
+}
+
+/* ---------- WARMUP ---------- */
+function warmupSection(root, gcs) {
+  const primary = gcs[0]; if (!primary || !(primary.warmup || []).length) return;
+  const s = section('Warmup & time-to-steady', 'FFM getpid cold-start · µs · lower is better',
+    'How fast the FFM downcall reaches steady state under different startup strategies (baseline JIT, JDK 25 AOT cache, optional Leyden).');
+  const ws = primary.warmup;
+  const series = ws.filter(w => (w.curve || []).length).map((w, i) => ({ name: w.label, color: SERIES[i % SERIES.length],
+    pts: downsample(w.curve.map(c => [c[0], c[1] / 1000]), 240) }));
+  if (series.length) s.appendChild(card('Warmup curve', 'per-call latency vs iteration · log–log so the early ramp (where the variants differ) is legible',
+    lineChart(series, { logY: true, logX: true, ylab: 'µs (log)', xlab: 'iteration (log)', xfmt: x => x >= 1000 ? fmt(x / 1000, 0) + 'k' : fmt(x, 0), yfmt: x => us(x), unit: 'µs', h: 320 }), legend(series)));
+  const tiles = el('div', { class: 'tiles' });
+  ws.forEach((w, i) => tiles.appendChild(tile(w.label, fmt(w.timeToSteadyNanos / 1e6, 2), 'ms to steady',
+    `1st call <b>${fmt(w.firstCallNanos / 1e6, 2)} ms</b> · steady <b>${w.steadyCostNanos} ns</b> @ iter ${w.steadyIter}`)));
+  s.appendChild(tiles);
+  s.appendChild(card('Warmup facts', null, factList(warmupFacts(ws))));
+  root.appendChild(s);
+}
+function warmupFacts(ws) {
+  const f = []; const jit = ws.find(w => w.label === 'jit'), aot = ws.find(w => w.label === 'aot');
+  ws.forEach(w => f.push({ level: 'info', text: `<b>${w.label}</b>: first call <code>${fmt(w.firstCallNanos / 1e6, 2)} ms</code>, reaches steady (${w.steadyCostNanos} ns/call) after <code>${fmt(w.timeToSteadyNanos / 1e6, 2)} ms</code> (iter ${w.steadyIter}).` }));
+  if (jit && aot) { const dFirst = (1 - aot.firstCallNanos / jit.firstCallNanos) * 100, dSteady = (1 - aot.timeToSteadyNanos / jit.timeToSteadyNanos) * 100;
+    f.push({ level: dFirst > 0 ? 'good' : 'warn', text: `AOT cache trims first-call by <b>${fmt(dFirst, 0)}%</b> and time-to-steady by <b>${fmt(dSteady, 0)}%</b> vs baseline JIT; steady-state cost is unchanged (${aot.steadyCostNanos} vs ${jit.steadyCostNanos} ns) — AOT is a cold-start win, not a hot-path one.` }); }
+  return f;
+}
+function downsample(arr, n) { if (arr.length <= n) return arr; const step = arr.length / n, out = [];
+  for (let i = 0; i < n; i++) out.push(arr[Math.floor(i * step)]); out.push(arr[arr.length - 1]); return out; }
+
+/* ---------- FFM DEEP-DIVE (Block E · V4) ---------- */
+const FFM_JMH = [
+  { key: 'DowncallLadderPerformanceTest', title: 'E1 · downcall option ladder', sub: 'ns/op · plain FFM vs critical() vs JNI vs JNA · lower is better',
+    lede: 'the raw cost of the bridge with the kernel out of the picture' },
+  { key: 'SegmentAccessPerformanceTest', title: 'E7 · bulk access inside a segment', sub: 'µs/op · VarHandle vs ByteBuffer vs array · lower is better',
+    lede: 'a static-final VarHandle matches ByteBuffer; a non-constant handle destroys it' },
+  { key: 'DataExchangePerformanceTest', title: 'E8 · data exchange across the boundary', sub: 'ns/op · FFM copy vs JNI regions vs JNA · lower is better',
+    lede: 'FFM bulk copy rides an intrinsic and matches Get/SetByteArrayRegion while staying safe' },
+  { key: 'HotPathPressurePerformanceTest', title: 'E-GC · hot path under allocation pressure', sub: 'ns/op (SampleTime) · p50/p99/p99.9 by MB/s · tail is the story',
+    lede: 'the median barely moves; the tail grows with pressure — the collector’s tail, not the bridge’s' },
+];
+function ffmSection(root, gcs) {
+  const primary = gcs[0]; if (!primary) return;
+  const ffm = primary.ffm || {};
+  const v = ffm.vthreads, sp = ffm.safepoint, cl = ffm.cleaner;
+  const jmhE = (primary.jmh || []).filter(b => FFM_JMH.some(x => b.name.includes(x.key)));
+  if (!v && !sp && !cl && !jmhE.length) return;
+  const s = section('FFM deep-dive (V4)', 'java.lang.foreign mechanics · Block E',
+    'Bridge and JVM mechanics behind the V4 FFM path. E1/E7/E8/E-GC are JMH micro-benchmarks (with JNI/JNA baselines); E4/E5/E6 are custom lanes — E4 and E6 drive real Pi4J FFM I2C reads against the mock, so the whole block sits in the V4 story.');
+  FFM_JMH.forEach(spec => { const rows = jmhE.filter(b => b.name.includes(spec.key)); if (rows.length) s.appendChild(ffmJmhCard(spec, rows)); });
+  if (v) s.appendChild(ffmVthreads(v));
+  if (sp) s.appendChild(ffmSafepoint(sp));
+  if (cl) s.appendChild(ffmCleaner(cl));
+  root.appendChild(s);
+}
+function ffmMethod(name) { return name.replace(/^.*\./, ''); }
+function ffmJmhColor(method) {
+  const m = method.toLowerCase();
+  if (m.includes('jna')) return STATUS.critical;
+  if (m.includes('jni')) return STATUS.warn;
+  if (m.includes('nonconstant')) return STATUS.serious;
+  return SERIES[0]; // FFM / java.lang.foreign
+}
+function ffmJmhCard(spec, rows) {
+  // Sort by param then method so grouped bars read left-to-right by size/rate.
+  const data = rows.map(r => ({ method: ffmMethod(r.name), params: r.params || '', score: r.score, error: r.error, unit: r.unit }))
+    .sort((a, b) => (a.params || '').localeCompare(b.params || '') || a.method.localeCompare(b.method));
+  const groups = data.map(d => ({ label: d.params ? d.method + ' · ' + d.params : d.method,
+    bars: [{ name: d.method, color: ffmJmhColor(d.method), value: d.score, note: '±' + fmt(d.error, 2) + ' ' + d.unit }] }));
+  const head = el('tr', {}, ['benchmark', 'params', 'score', '± error', 'unit'].map(t => el('th', { text: t })));
+  const body = data.map(d => el('tr', {}, [
+    el('td', { text: d.method }), el('td', { class: 'mut', text: d.params || '—' }),
+    el('td', { text: fmt(d.score, d.score < 10 ? 3 : 2) }), el('td', { class: 'mut', text: '±' + fmt(d.error, 2) }),
+    el('td', { class: 'mut', text: d.unit })]));
+  return card(spec.title, spec.sub,
+    el('p', { class: 'lede', text: spec.lede }),
+    barChart(groups, { unit: data[0] ? data[0].unit : '', vfmt: x => fmt(x, x < 10 ? 3 : 2) }),
+    el('table', {}, [el('thead', {}, head), el('tbody', {}, body)]));
+}
+function ffmModeColor(m) {
+  if (m.includes('yield')) return STATUS.good;
+  if (m.includes('pin')) return STATUS.warn;
+  if (m.includes('i2c')) return SERIES[0];
+  return cssv('--text-3');
+}
+function ffmVthreads(v) {
+  const rows = v.results || []; if (!rows.length) return el('div', {});
+  const maxN = Math.max(...rows.map(r => r.tasks));
+  const at = rows.filter(r => r.tasks === maxN);
+  const groups = at.map(r => ({ label: r.mode, bars: [{ name: r.mode, color: ffmModeColor(r.mode),
+    value: r.throughputPerSec, note: 'p99 ' + us(r.p99Micros) + ' µs' }] }));
+  const facts = [];
+  const pin = at.find(r => r.mode === 'vthread-pin'), plat = at.find(r => r.mode === 'platform-usleep'), yld = at.find(r => r.mode === 'vthread-yield');
+  if (pin && plat && yld) facts.push({ level: 'warn', text:
+    `At N=${maxN}, blocking <b>vthread-pin</b> (<code>${fmt(pin.throughputPerSec, 0)} ops/s</code>) tracks <b>platform-usleep</b> (<code>${fmt(plat.throughputPerSec, 0)}</code>) — <b>not</b> <b>vthread-yield</b> (<code>${fmt(yld.throughputPerSec, 0)}</code>): a blocking native call pins the carrier, so virtual threads add no scaling.` });
+  const i2cP = at.find(r => r.mode === 'platform-i2c'), i2cV = at.find(r => r.mode === 'vthread-i2c');
+  if (i2cP && i2cV) facts.push({ level: 'info', text:
+    `Real Pi4J FFM I2C read (mock): platform <code>${fmt(i2cP.throughputPerSec, 0)}</code> vs vthread <code>${fmt(i2cV.throughputPerSec, 0)} ops/s</code> — a short non-blocking ioctl scales on both.` });
+  const head = el('tr', {}, ['N', 'mode', 'throughput (ops/s)', 'p50 µs', 'p99 µs', 'max µs'].map(t => el('th', { text: t })));
+  const body = rows.map(r => el('tr', {}, [
+    el('td', { text: String(r.tasks) }), el('td', { text: r.mode }),
+    el('td', { text: fmt(r.throughputPerSec, 0) }), el('td', { text: us(r.p50Micros) }),
+    el('td', { text: us(r.p99Micros) }), el('td', { text: us(r.maxMicros) })]));
+  return card('E4 · virtual threads + blocking downcalls', `throughput by mode at N=${maxN} · higher is better`,
+    barChart(groups, { unit: 'ops/s', vfmt: x => fmt(x, 0) }),
+    el('table', {}, [el('thead', {}, head), el('tbody', {}, body)]), factList(facts));
+}
+function ffmSafepoint(sp) {
+  const rows = sp.results || []; if (!rows.length) return el('div', {});
+  const head = el('tr', {}, ['option', 'call', 'bystander max µs', 'ttsp p99.9 µs', 'ttsp max µs'].map(t => el('th', { text: t })));
+  const callLabel = m => m >= 1000 ? (m / 1000) + ' ms' : m + ' µs';
+  const body = rows.map(r => el('tr', {}, [
+    el('td', { class: r.option === 'critical' ? 'neg' : 'mut', text: r.option }),
+    el('td', { text: callLabel(r.callMicros) }),
+    el('td', { text: us(r.bystanderMaxMicros) }), el('td', { text: us(r.ttspP999Micros) }),
+    el('td', { text: us(r.ttspMaxMicros) })]));
+  const facts = [{ level: 'info', text:
+    'A <code>critical()</code> call keeps the thread in Java state, so the JVM cannot reach a global safepoint until it returns — the honest flip side of the "critical() shaves nanoseconds" recipe. The authoritative record is the <code>ffm-safepoint-vmlog.txt</code> (<code>-Xlog:safepoint</code>) captured next to the JSON; clean absolute numbers need a quiesced host.' }];
+  return card('E5 · time-to-safepoint under a native call', 'critical vs plain blocking call · lower stalls are better',
+    el('table', {}, [el('thead', {}, head), el('tbody', {}, body)]), factList(facts));
+}
+function ffmCleaner(cl) {
+  const rows = cl.results || []; if (!rows.length) return el('div', {});
+  const groups = rows.map(r => ({ label: r.mode, bars: [
+    { name: 'peak RSS', color: r.mode === 'ofAuto' ? STATUS.critical : STATUS.good, value: r.peakRssKib, note: 'baseline ' + kib(r.baselineRssKib) },
+    { name: 'after GC', color: SERIES[2], value: r.afterGcRssKib } ] }));
+  const auto = rows.find(r => r.mode === 'ofAuto'), conf = rows.find(r => r.mode === 'ofConfined');
+  const facts = [];
+  if (auto) facts.push({ level: auto.reclaimLagMillis < 0 ? 'critical' : 'warn', text:
+    `<b>ofAuto</b> peaks at <code>${kib(auto.peakRssKib)}</code> (ramp <code>${kib(auto.peakRssKib - auto.baselineRssKib)}</code>) and ${auto.reclaimLagMillis < 0 ? 'does <b>not</b> drain within the window' : 'drains after <code>' + auto.reclaimLagMillis + ' ms</code>'}: segments must go unreachable, then wait for GC, then the Cleaner.` });
+  if (conf) facts.push({ level: 'good', text:
+    `<b>ofConfined</b> stays flat (peak <code>${kib(conf.peakRssKib)}</code>, ramp <code>${kib(conf.peakRssKib - conf.baselineRssKib)}</code>): the per-call arena frees deterministically — the shape the #628 fix restored.` });
+  const head = el('tr', {}, ['mode', 'baseline', 'peak RSS', 'after GC', 'reclaim lag', 'GC (n/ms)'].map(t => el('th', { text: t })));
+  const body = rows.map(r => el('tr', {}, [
+    el('td', { class: r.mode === 'ofAuto' ? 'neg' : 'pos', text: r.mode }),
+    el('td', { text: kib(r.baselineRssKib) }), el('td', { text: kib(r.peakRssKib) }),
+    el('td', { text: kib(r.afterGcRssKib) }),
+    el('td', { text: r.reclaimLagMillis < 0 ? '> drain' : r.reclaimLagMillis + ' ms' }),
+    el('td', { text: r.gcCount + ' / ' + r.gcMillis })]));
+  return card('E6 · Arena.ofAuto() Cleaner pressure', 'RSS under a fixed alloc rate + a real Pi4J FFM read/iter · flatter is better',
+    barChart(groups, { unit: 'KiB', vfmt: x => kib(x) }), legend([{ name: 'peak RSS', color: STATUS.critical }, { name: 'after GC', color: SERIES[2] }]),
+    el('table', {}, [el('thead', {}, head), el('tbody', {}, body)]), factList(facts));
+}
+
+function footer(meta) { return el('footer', { class: 'page' },
+  `pi4j-bench · generated report · git ${meta.gitSha || '?'} · ${meta.jdk || ''} · ${meta.kernel || ''}`); }
+
+/* ================= COMPARE MODE ================= */
+// A "lane" in compare mode = one run × one collector. Each carries its dimensions
+// (arch, gc type, gc-pressure) and a stable colour reused across every chart/table.
+function pressLabel(p) { return p ? (typeof p === 'number' ? p + ' MB/s' : 'on') : 'off'; }
+function laneName(L) { return L.run + ' · ' + L.gc; }
+
+function renderCompare(data) {
+  const runs = data.runs || [];
+  const h = el('header', { class: 'page' });
+  h.appendChild(el('h1', { text: 'pi4j-bench · comparison' }));
+  h.appendChild(el('div', { class: 'sub', text: runs.length + ' runs · ' + runs.map(r => r.label).join('  vs  ') }));
+  app.appendChild(h);
+
+  // flat lane list, coloured once, reused everywhere
+  const lanes = []; let ci = 0;
+  runs.forEach((r, ri) => eachGc(r).forEach(gc => lanes.push({
+    run: r.label, ri, arch: r.meta.arch || '?', gc: (gc.gc || '?').toUpperCase(),
+    pressure: r.meta.gcPressure ? (r.meta.gcPressureMbps || 'on') : 0,
+    color: SERIES[ci++ % SERIES.length],
+    jmh: gc.jmh || [], latency: gc.latency || [], memory: gc.memory || [], warmup: gc.warmup || [],
+  })));
+
+  configMatrix(runs);
+  compareJmh(lanes);
+  compareLatency(lanes);
+  compareMemory(lanes);
+  app.appendChild(footer(runs[runs.length - 1]?.meta || {}));
+}
+
+/* ---- the dimension matrix: arch / gc / gc-pressure (and provenance) side by side ---- */
+function configMatrix(runs) {
+  const s = section('Run configuration', 'as detailed as a single-run header · arch · gc · jdk · pi4j',
+    'Every dimension of each run, side by side. Cells that differ between runs are highlighted so you read the measurements below in the right light.');
+  // Same dimensions as the single-run header, one column per run.
+  const head = el('tr', {}, ['dimension', ...runs.map(r => r.label)].map(t => el('th', { text: t })));
+  const body = META_DIMS.map(([name, fn]) => {
+    const vals = runs.map(r => String(fn(r.meta)));
+    const same = new Set(vals).size === 1;
+    const cells = vals.map(v => el('td', { class: same ? '' : 'diffcell', text: v }));
+    return el('tr', {}, [el('td', { text: name + (same ? '' : '  ≠') }), ...cells]);
+  });
+  s.appendChild(card(null, null, el('table', {}, [el('thead', {}, head), el('tbody', {}, body)])));
+  s.appendChild(card('Facts', null, factList(configFacts(runs))));
+  app.appendChild(s);
+}
+function configFacts(runs) {
+  const f = [], u = (fn) => [...new Set(runs.map(fn))];
+  const archs = u(r => r.meta.arch || '?');
+  if (archs.length > 1) f.push({ level: 'critical', text: `Runs span architectures <b>${archs.join(', ')}</b> — this is a <b>cross-arch</b> comparison; absolute numbers are not directly comparable, only within-arch ratios (V4 vs V3) are.` });
+  else f.push({ level: 'good', text: `All runs on <b>${archs[0]}</b>.` });
+  const loads = u(r => pressLabel(r.meta.gcPressure ? (r.meta.gcPressureMbps || 'on') : 0));
+  if (loads.length > 1) f.push({ level: 'warn', text: `gc-pressure differs across runs (<b>${loads.join(' vs ')}</b>) — you are comparing loaded vs idle latency; expect the loaded run's tail to be higher by design.` });
+  const gcsets = u(r => (r.meta.gcs || []).join(','));
+  if (gcsets.length > 1) f.push({ level: 'info', text: `Collector sets differ: ${runs.map(r => `<b>${r.label}</b> [${(r.meta.gcs || []).join(', ')}]`).join(', ')}. Lanes are matched by gc type below.` });
+  const gits = u(r => r.meta.gitSha || '?'), hosts = u(r => r.meta.host ? r.meta.host.cpuModel : '?');
+  if (gits.length === 1 && hosts.length === 1 && archs.length === 1) f.push({ level: 'good', text: `Same host and commit (<code>${gits[0]}</code>) — differences below are the measurement signal, not environment drift.` });
+  else if (gits.length > 1) f.push({ level: 'warn', text: `Different commits (${gits.join(', ')}) — differences may be code, not noise.` });
+  return f;
+}
+
+/* ---- a small lane key: arch / gc type / gc-pressure for the lanes in this measurement ---- */
+function laneKeyTable(lanes) {
+  const head = el('tr', {}, ['lane', 'arch', 'gc type', 'gc-pressure'].map(t => el('th', { text: t })));
+  const body = lanes.map(L => el('tr', {}, [
+    el('td', {}, [el('span', { class: 'swatch', style: `background:${L.color};width:10px;height:10px;display:inline-block;border-radius:3px;margin-right:7px` }), laneName(L)]),
+    el('td', { text: L.arch }), el('td', { text: L.gc }),
+    el('td', { class: L.pressure ? 'neg' : 'mut', text: pressLabel(L.pressure) })]));
+  return el('table', {}, [el('thead', {}, head), el('tbody', {}, body)]);
+}
+
+/* ---- hot-path throughput, per run×gc lane ---- */
+function compareJmh(lanes) {
+  const jl = lanes.filter(L => L.jmh.length);
+  if (!jl.length) return;
+  jl.forEach(L => { L.jmap = {}; pairJmh(L.jmh).forEach(r => L.jmap[r.op] = r); });
+  const ops = [...new Set(jl.flatMap(L => Object.keys(L.jmap)))].filter(o => jl.some(L => L.jmap[o] && L.jmap[o].unit === 'µs/op'));
+  if (!ops.length) return;
+  const s = section('Hot-path throughput across runs', 'V4 µs/op · lower is better',
+    'One coloured bar per run×collector lane, grouped by operation. The lane key shows the arch, gc type and gc-pressure behind each colour.');
+  s.appendChild(card('Lanes compared', 'arch · gc type · gc-pressure for every lane in this measurement', laneKeyTable(jl)));
+  const groups = ops.map(op => ({ label: op, bars: jl.map(L => L.jmap[op]?.v4 == null ? null
+    : { name: laneName(L), color: L.color, value: L.jmap[op].v4, note: `${L.arch} · ${L.gc} · load ${pressLabel(L.pressure)}` }).filter(Boolean) }));
+  s.appendChild(card('V4 throughput', null, barChart(groups, { unit: 'µs/op', vfmt: x => us(x) }), legend(jl.map(L => ({ name: laneName(L), color: L.color })))));
+  const head = el('tr', {}, ['operation', ...jl.map(L => laneName(L)), 'Δ ' + laneName(jl[0]) + '→' + laneName(jl[jl.length - 1])].map(t => el('th', { text: t })));
+  const body = ops.map(op => {
+    const first = jl[0].jmap[op]?.v4, last = jl[jl.length - 1].jmap[op]?.v4;
+    const cells = jl.map(L => el('td', { text: L.jmap[op]?.v4 != null ? us(L.jmap[op].v4) : '—' }));
+    const d = (first != null && last != null) ? (last / first - 1) * 100 : null;
+    cells.push(el('td', { class: d == null ? 'mut' : Math.abs(d) < 3 ? 'mut' : d < 0 ? 'pos' : 'neg', text: d == null ? '—' : pct(d) }));
+    return el('tr', {}, [el('td', { text: op }), ...cells]);
+  });
+  s.appendChild(card('Per-op detail (V4 µs/op)', 'green = faster in the last lane, red = slower, grey = within ±3%', el('table', {}, [el('thead', {}, head), el('tbody', {}, body)])));
+  s.appendChild(card('Facts', null, factList(compareJmhFacts(jl, ops))));
+  app.appendChild(s);
+}
+function compareJmhFacts(jl, ops) {
+  const f = []; if (jl.length < 2) return f;
+  const a = jl[0], b = jl[jl.length - 1];
+  const reg = [], imp = [], same = [];
+  ops.forEach(op => { const x = a.jmap[op]?.v4, y = b.jmap[op]?.v4; if (x == null || y == null) return;
+    const d = (y / x - 1) * 100; if (d > 5) reg.push([op, d]); else if (d < -5) imp.push([op, d]); else same.push(op); });
+  const tag = `${laneName(a)}→${laneName(b)}`;
+  if (a.arch !== b.arch) f.push({ level: 'warn', text: `These two lanes differ in arch (<b>${a.arch}</b> vs <b>${b.arch}</b>) — the Δ below is cross-arch.` });
+  if (imp.length) f.push({ level: 'good', text: `<b>${imp.length}</b> op(s) faster ${tag}: ` + imp.sort((p, q) => p[1] - q[1]).map(([o, d]) => `${o} (${pct(d)})`).join(', ') + '.' });
+  if (reg.length) f.push({ level: 'critical', text: `<b>${reg.length}</b> op(s) slower: ` + reg.sort((p, q) => q[1] - p[1]).map(([o, d]) => `${o} (${pct(d)})`).join(', ') + '.' });
+  f.push({ level: 'info', text: `${same.length} op(s) within ±5% (noise).` });
+  return f;
+}
+
+/* ---- latency: one lane per run×gc×load; dims live in the detail table ---- */
+function compareLatency(lanes) {
+  const LP = ['p50', 'p90', 'p99', 'p999', 'p9999', 'max'], LPlab = { p50: 'p50', p90: 'p90', p99: 'p99', p999: 'p99.9', p9999: 'p99.99', max: 'max' };
+  const lat = []; let ci = 0;
+  lanes.forEach(L => L.latency.forEach(x => lat.push({
+    run: L.run, ri: L.ri, arch: L.arch, gc: (x.gc || L.gc).toUpperCase(),
+    load: x.gcPressure ? (x.mbps || 'on') : 0, p: x.p, write: x.write, missed: x.missed || 0, count: x.count || 0,
+    color: SERIES[ci++ % SERIES.length],
+  })));
+  if (!lat.length) return;
+  const name = L => `${L.run} · ${L.gc}${L.load ? ' +load' : ''}`;
+  const s = section('Latency across runs', 'p50 / p99 / p99.9 / max · µs',
+    'Percentile ladder overlaid: one line per run×collector×load lane. The detail table breaks out arch, gc type and gc-pressure per lane.');
+  const series = lat.map(L => ({ name: name(L), color: L.color, pts: LP.map((k, xi) => [xi, L.p[k]]) }));
+  s.appendChild(card('Percentile ladder', lat.length + ' lane(s)', lineChart(series, { logY: true, ylab: 'µs (log)', xlab: 'percentile', xfmt: i => LPlab[LP[Math.round(i)]] || '', yfmt: x => us(x), unit: 'µs', h: 340 }), legend(series)));
+  const head = el('tr', {}, ['lane', 'arch', 'gc type', 'gc-pressure', ...LP.map(k => LPlab[k]), 'missed'].map(t => el('th', { text: t })));
+  const body = lat.map(L => el('tr', {}, [
+    el('td', {}, [el('span', { class: 'swatch', style: `background:${L.color};width:10px;height:10px;display:inline-block;border-radius:3px;margin-right:7px` }), name(L)]),
+    el('td', { text: L.arch }), el('td', { text: L.gc }), el('td', { class: L.load ? 'neg' : 'mut', text: pressLabel(L.load) }),
+    ...LP.map(k => el('td', { text: us(L.p[k]) })),
+    el('td', { class: L.missed ? 'neg' : 'mut', text: L.missed })]));
+  s.appendChild(card('Detail — arch · gc type · gc-pressure × percentiles', null, el('table', {}, [el('thead', {}, head), el('tbody', {}, body)])));
+  s.appendChild(card('Facts', null, factList(compareLatencyFacts(lat, name))));
+  app.appendChild(s);
+}
+function compareLatencyFacts(lat, name) {
+  const f = [];
+  // match lanes across runs by (arch, gc type, load)
+  const byKey = {};
+  lat.forEach(L => { const k = `${L.arch}|${L.gc}|${L.load ? 'load' : 'idle'}`; (byKey[k] ||= []).push(L); });
+  Object.values(byKey).forEach(arr => { if (arr.length < 2) return; const first = arr[0], last = arr[arr.length - 1];
+    if (JSON.stringify(first.p) === JSON.stringify(last.p)) { f.push({ level: 'warn', text: `<b>${first.gc}</b> (${first.arch}, load ${pressLabel(first.load)}) is <b>byte-identical</b> between ${name(first)} and ${name(last)} — the lane was reused/stale, not re-measured.` }); return; }
+    const d999 = (last.p.p999 / first.p.p999 - 1) * 100, dMax = (last.p.max / first.p.max - 1) * 100;
+    f.push({ level: Math.abs(d999) < 5 ? 'info' : d999 < 0 ? 'good' : 'warn', text: `<b>${first.gc}</b> (${first.arch}, load ${pressLabel(first.load)}): p99.9 ${pct(d999)} (${us(first.p.p999)}→${us(last.p.p999)} µs), max ${pct(dMax)} ${name(first)}→${name(last)}.` }); });
+  // gc-type ranking within each run: which collector owns the tail
+  const byRun = {};
+  lat.forEach(L => (byRun[L.run] ||= []).push(L));
+  Object.entries(byRun).forEach(([run, arr]) => { if (arr.length < 2) return;
+    const best = arr.reduce((a, b) => a.p.p999 <= b.p.p999 ? a : b);
+    f.push({ level: 'info', text: `In <b>${run}</b>, <b>${best.gc}</b> owns the tail (lowest p99.9 = ${us(best.p.p999)} µs) among ${arr.map(x => x.gc).join(', ')}.` }); });
+  return f;
+}
+
+/* ---- memory: RSS Δ per mode across lanes ---- */
+function compareMemory(lanes) {
+  const ml = lanes.filter(L => L.memory.length);
+  if (!ml.length) return;
+  const modes = [...new Set(ml.flatMap(L => L.memory.map(x => x.mode)))];
+  const s = section('Memory across runs', 'RSS Δ over the fixed workload',
+    'Retained RSS per mode, one coloured bar per run×collector lane. The lane key shows arch, gc type and gc-pressure.');
+  s.appendChild(card('Lanes compared', 'arch · gc type · gc-pressure for every lane in this measurement', laneKeyTable(ml)));
+  const groups = modes.map(mode => ({ label: mode, bars: ml.map(L => { const M = L.memory.find(x => x.mode === mode);
+    return M ? { name: laneName(L), color: L.color, value: M.rssDeltaKib / 1024, note: `${L.arch} · ${L.gc}` } : null; }).filter(Boolean) }));
+  s.appendChild(card('RSS Δ (MiB) by mode', null, barChart(groups, { unit: 'MiB', vfmt: x => fmt(x, 0) }), legend(ml.map(L => ({ name: laneName(L), color: L.color })))));
+  const head = el('tr', {}, ['mode', ...ml.map(L => laneName(L)), 'verdict (last)'].map(t => el('th', { text: t })));
+  const body = modes.map(mode => {
+    const cells = ml.map(L => { const M = L.memory.find(x => x.mode === mode); return el('td', { text: M ? kib(M.rssDeltaKib) : '—' }); });
+    const lastM = ml[ml.length - 1].memory.find(x => x.mode === mode); const v = lastM ? leakVerdict(lastM) : { label: '—', color: cssv('--text-3') };
+    return el('tr', {}, [el('td', { text: mode }), ...cells, el('td', { style: `color:${v.color}`, text: v.label })]);
+  });
+  s.appendChild(card('Detail — RSS Δ per lane', null, el('table', {}, [el('thead', {}, head), el('tbody', {}, body)])));
+  app.appendChild(s);
+}
+
+/* everything is declared — now render */
+if (MODE === 'single') renderSingle(DATA); else renderCompare(DATA);
+</script>
+</body>
+</html>

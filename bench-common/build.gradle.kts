@@ -1,7 +1,6 @@
 // Zero Pi4J deps: MockSetup, RssSampler, EnvManifest, HdrRecorder, result-schema POJOs.
 // Shared by every lane so the harness code is identical across V3/V4.
 plugins {
-    id("pi4j-bench.java")
     `java-library`
 }
 

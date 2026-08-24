@@ -4,27 +4,18 @@
   <component name="GradleSettings">
     <option name="linkedExternalProjectsSettings">
       <GradleProjectSettings>
-        <compositeConfiguration>
-          <compositeBuild compositeDefinitionSource="SCRIPT">
-            <builds>
-              <build path="$PROJECT_DIR$/build-logic" name="build-logic">
-                <projects>
-                  <project path="$PROJECT_DIR$/build-logic" />
-                </projects>
-              </build>
-            </builds>
-          </compositeBuild>
-        </compositeConfiguration>
         <option name="externalProjectPath" value="$PROJECT_DIR$" />
         <option name="modules">
           <set>
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/bench-common" />
+            <option value="$PROJECT_DIR$/bench-ffm" />
             <option value="$PROJECT_DIR$/bench-latency" />
             <option value="$PROJECT_DIR$/bench-memory" />
+            <option value="$PROJECT_DIR$/bench-runner" />
             <option value="$PROJECT_DIR$/bench-v3" />
             <option value="$PROJECT_DIR$/bench-v4" />
-            <option value="$PROJECT_DIR$/build-logic" />
+            <option value="$PROJECT_DIR$/bench-warmup" />
             <option value="$PROJECT_DIR$/native-image" />
             <option value="$PROJECT_DIR$/native-v3" />
           </set>

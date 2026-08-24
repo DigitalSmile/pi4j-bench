@@ -41,3 +41,13 @@ fi
 
 # Sleep a second to let udev rules to be applied
 sleep 0.5
+
+# Grant the non-root benchmark JVM access to the mock's debugfs line nodes so the Block C
+# latency runner can raise edges (run-matrix.sh runs Gradle as the user; only these setup
+# scripts run as root). debugfs is mode 0700 by default — open traversal to the gpio-mock
+# subtree. Removed with the module on rmmod; the debugfs-root bit is reverted by
+# gpio-clean.sh. Dedicated bench box only.
+if [ -d /sys/kernel/debug/gpio-mock ]; then
+	chmod a+rx /sys/kernel/debug 2>/dev/null || true
+	chmod -R a+rw /sys/kernel/debug/gpio-mock 2>/dev/null || true
+fi

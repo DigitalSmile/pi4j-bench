@@ -1,5 +1,4 @@
 pluginManagement {
-    includeBuild("build-logic")
     repositories {
         gradlePluginPortal()
         mavenCentral()
@@ -23,10 +22,13 @@ rootProject.name = "pi4j-bench"
 
 include(
     "bench-common",
+    "bench-runner",
     "bench-v4",
     "bench-v3",
     "bench-latency",
     "bench-memory",
+    "bench-warmup",
+    "bench-ffm",
     "native-v3",
     "native-image",
 )

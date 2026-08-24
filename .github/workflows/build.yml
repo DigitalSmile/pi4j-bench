@@ -1,0 +1,46 @@
+# Build the portable bench-runner bundle. It's a fat jar (arch-agnostic), and it ships
+# cross-compiled V3 JNI natives for every arch a toolchain is present for — so we install
+# the cross toolchains + multiarch libgpiod first, then one build produces an all-platform
+# bundle that runs on amd64/arm64/riscv64 with a JDK 25.
+name: build
+
+on:
+  push: { branches: [ main, master ] }
+  workflow_dispatch:
+
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { java-version: '25', distribution: 'temurin' }
+
+      # Cross toolchains + target libgpiod so native-v3:buildAll can cross-compile the V3
+      # JNI wrappers for arm64/riscv64 as well as the host amd64. Multiarch libgpiod may be
+      # absent for some targets (best-effort): buildAll skips any arch it can't complete.
+      - name: Install cross toolchains + libgpiod-from-source build deps
+        run: |
+          sudo dpkg --add-architecture arm64
+          sudo dpkg --add-architecture riscv64
+          sudo apt-get update || true
+          # Cross toolchains for arm64 + riscv64 (host amd64 uses the runner's gcc).
+          sudo apt-get install -y --no-install-recommends \
+            gcc-aarch64-linux-gnu gcc-riscv64-linux-gnu || true
+          # buildAll compiles libgpiod v1.x FROM SOURCE per arch (no multiarch libgpiod-dev
+          # needed) — that needs autotools. Without these, `autoreconf -fi` fails and the
+          # gpiod lane silently falls back to a distro lib that may be absent for riscv64.
+          sudo apt-get install -y --no-install-recommends \
+            build-essential autoconf automake libtool pkg-config || true
+          # Optional: a distro multiarch libgpiod as a fallback if the from-source build
+          # can't complete on a given arch (best-effort — may 404 for some targets).
+          sudo apt-get install -y --no-install-recommends \
+            libgpiod-dev libgpiod-dev:arm64 libgpiod-dev:riscv64 || true
+
+      # NOTE: the V4/FFM lane needs com.pi4j:*:5.0.0-SNAPSHOT in mavenLocal
+      # (tools/build-pi4j-v4.sh) before the bundle — run it or prime ~/.m2 in CI.
+      - run: ./gradlew --no-daemon :bench-runner:bundle
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pi4j-bench-bundle
+          path: build/bundle/

@@ -41,5 +41,12 @@ bin/
 
 ### Mac OS ###
 .DS_Store
-# Compiled mock kernel modules (built per-machine by native/*/build.sh)
+# Compiled mock kernel modules + out-of-tree kbuild intermediates (per-machine)
 *.ko
+*.mod
+*.mod.c
+*.mod.o
+*.o
+.*.cmd
+Module.symvers
+modules.order
