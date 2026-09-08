@@ -85,9 +85,16 @@ public record RunConfig(
         m.put("bench.gpio.label.gpiod", "pinctrl-mock");
         m.put("bench.spi.bus", "6");              // SpiBus.BUS_6
         m.put("bench.spi.channel", "0");
-        m.put("bench.pwm.chip", "0");
+        // "auto" = discover the pwm-mock chip from sysfs. Its index is assigned in
+        // registration order, so it is only 0 on boards without a PWM controller of their
+        // own; hardware lanes pin a number instead (see PwmChipResolver).
+        m.put("bench.pwm.chip", "auto");
         m.put("bench.pwm.channel", "0");
         m.put("bench.linuxfs.path", "/sys/class/gpio/");
+        // Exact label of the mock gpiochip (set by gpio-linuxfs-setup.sh). The sysfs base is
+        // assigned by the kernel, so the chip is found by label and lines are addressed as
+        // base + offset; offset 2 is deliberately avoided, the mock hogs it (GPIO_MOCK_HOGS).
+        m.put("bench.linuxfs.label", "linuxfs-mock");
         m.put("bench.linuxfs.offset", "0");
         m.put("bench.linuxfs.out.offset", "1");
         return m;

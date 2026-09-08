@@ -36,19 +36,41 @@ fi
 
 # Pre-export each line of our mock chip(s) and make the sysfs attributes writable by
 # everyone (settle first so udev can't revert us — there's no gpio udev rule anyway).
+#
+# Export failures are EXPECTED for lines the kernel holds (hog_lines keeps one busy on
+# purpose), so they must not abort setup — but they are reported rather than swallowed.
+# The benchmark reads the same exported/not-exported state to pick its line, so this
+# summary is what explains an 'offset N is not exported' failure later.
 udevadm settle 2>/dev/null || true
+prepared=""
 for gc in /sys/class/gpio/gpiochip*; do
 	[ -r "$gc/label" ] || continue
-	case "$(cat "$gc/label")" in *mock*) ;; *) continue ;; esac
+	label="$(cat "$gc/label")"
+	case "$label" in *mock*) ;; *) continue ;; esac
 	base="$(cat "$gc/base" 2>/dev/null)" || continue
 	ngpio="$(cat "$gc/ngpio" 2>/dev/null)" || continue
+	ok=""
+	busy=""
 	off=0
 	while [ "$off" -lt "$ngpio" ]; do
-		pin=$((base + off)); off=$((off + 1))
+		pin=$((base + off))
 		echo "$pin" > /sys/class/gpio/export 2>/dev/null || true
-		[ -d "/sys/class/gpio/gpio$pin" ] && chmod -R a+rw "/sys/class/gpio/gpio$pin" 2>/dev/null || true
+		if [ -d "/sys/class/gpio/gpio$pin" ]; then
+			chmod -R a+rw "/sys/class/gpio/gpio$pin" 2>/dev/null || true
+			ok="$ok $off"
+		else
+			busy="$busy $off"
+		fi
+		off=$((off + 1))
 	done
+	echo "gpio-linuxfs-setup: '$label' base=$base ngpio=$ngpio exported offsets:${ok:- none}${busy:+, kernel-held (not exported):$busy}"
+	prepared="$prepared $label"
 done
 chmod a+rw /sys/class/gpio/export /sys/class/gpio/unexport 2>/dev/null || true
+
+if [ -z "$prepared" ]; then
+	echo "gpio-linuxfs-setup: no mock gpiochip under /sys/class/gpio — the module did not register one; see dmesg" >&2
+	exit 1
+fi
 
 sleep 0.3

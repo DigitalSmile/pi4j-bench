@@ -1,6 +1,7 @@
 package com.pi4j.plugin.jmh;
 
 import com.pi4j.Pi4J;
+import com.pi4j.bench.common.BenchProps;
 import com.pi4j.context.Context;
 import com.pi4j.io.gpio.digital.DigitalInput;
 import com.pi4j.io.gpio.digital.DigitalInputConfigBuilder;
@@ -30,11 +31,18 @@ public class LinuxFsInputPerformanceTest extends BaseSetup {
     @Setup(Level.Trial)
     public void setup() throws InterruptedException, IOException {
         setup("gpio-linuxfs"); // IRQ-disabled mock + pre-exported/chmod'd sysfs pins
+
+        // The sysfs base is assigned by the kernel, so the line is located by chip label and
+        // checked to be exported before use — an unexported line is one the kernel is holding,
+        // which the provider would only report as 'Device or resource busy'.
+        var line = LinuxFsMock.input();
+        System.out.println("# linuxfs input line: " + line.explanation());
+
         this.linuxFs = Pi4J.newContextBuilder()
-            .add(new LinuxFsDigitalInputProviderImpl(com.pi4j.bench.common.BenchProps.strProp("bench.linuxfs.path", "/sys/class/gpio/")))
+            .add(new LinuxFsDigitalInputProviderImpl(BenchProps.strProp("bench.linuxfs.path", "/sys/class/gpio/")))
             .build();
         this.linuxFsPin = linuxFs.create(DigitalInputConfigBuilder.newInstance(linuxFs)
-            .address(LinuxFsMock.base() + com.pi4j.bench.common.BenchProps.intProp("bench.linuxfs.offset", 0))
+            .address(line.pin())
             .debounce(99L, TimeUnit.MICROSECONDS)
             .pull(PullResistance.PULL_DOWN)
             .build());

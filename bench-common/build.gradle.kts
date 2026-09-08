@@ -11,4 +11,10 @@ dependencies {
     // Single SLF4J binding for every lane (pi4j + oshi log through slf4j).
     // Silenced by simplelogger.properties (defaultLogLevel=off) in this module.
     api(libs.slf4j.simple)
+
+    // Harness unit tests (sysfs PWM chip discovery). The lanes themselves measure hardware
+    // and cannot run here; this covers the pure-Java logic they depend on.
+    testImplementation(platform(libs.junit.bom))
+    testImplementation(libs.junit.jupiter)
+    testRuntimeOnly(libs.junit.platform.launcher)
 }

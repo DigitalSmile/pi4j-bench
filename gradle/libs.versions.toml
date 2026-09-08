@@ -28,7 +28,12 @@ picocli             = { module = "info.picocli:picocli", version.ref = "picocli"
 picocli-codegen     = { module = "info.picocli:picocli-codegen", version.ref = "picocli" }
 oshi-core           = { module = "com.github.oshi:oshi-core", version.ref = "oshi" }
 jackson-databind    = { module = "com.fasterxml.jackson.core:jackson-databind", version.ref = "jackson" }
+junit-bom           = { module = "org.junit:junit-bom", version.ref = "junit" }
 junit-jupiter-api   = { module = "org.junit.jupiter:junit-jupiter-api", version.ref = "junit" }
+# Full Jupiter (api + params + engine) and the launcher: unit tests for the harness itself
+# (bench-common). Versions come from junit-bom so the engine can never drift from the api.
+junit-jupiter       = { module = "org.junit.jupiter:junit-jupiter" }
+junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
 slf4j-simple        = { module = "org.slf4j:slf4j-simple", version.ref = "slf4j" }
 # jmh-core / jmh-annprocess above are consumed directly by the bench-v3/v4 lanes (plain
 # annotation processing — no me.champeau.jmh plugin); the runner forks org.openjdk.jmh.Main.

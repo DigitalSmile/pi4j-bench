@@ -1,6 +1,7 @@
 package com.pi4j.plugin.jmh;
 
 import com.pi4j.Pi4J;
+import com.pi4j.bench.common.BenchProps;
 import com.pi4j.context.Context;
 import com.pi4j.io.gpio.digital.DigitalOutput;
 import com.pi4j.io.gpio.digital.DigitalOutputConfigBuilder;
@@ -29,11 +30,16 @@ public class LinuxFsOutputPerformanceTest extends BaseSetup {
     @Setup(Level.Trial)
     public void setup() throws InterruptedException, IOException {
         setup("gpio-linuxfs"); // IRQ-disabled mock + pre-exported/chmod'd sysfs pins
+
+        // See LinuxFsInputPerformanceTest: chip located by label, line validated as exported.
+        var line = LinuxFsMock.output();
+        System.out.println("# linuxfs output line: " + line.explanation());
+
         this.linuxFs = Pi4J.newContextBuilder()
-            .add(new LinuxFsDigitalOutputProviderImpl(com.pi4j.bench.common.BenchProps.strProp("bench.linuxfs.path", "/sys/class/gpio/")))
+            .add(new LinuxFsDigitalOutputProviderImpl(BenchProps.strProp("bench.linuxfs.path", "/sys/class/gpio/")))
             .build();
         this.linuxFsPin = linuxFs.create(DigitalOutputConfigBuilder.newInstance(linuxFs)
-            .address(LinuxFsMock.base() + com.pi4j.bench.common.BenchProps.intProp("bench.linuxfs.out.offset", 1)).build());
+            .address(line.pin()).build());
     }
 
     @TearDown(Level.Trial)
